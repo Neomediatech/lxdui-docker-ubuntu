@@ -1,18 +1,23 @@
-# docker run -it -p 15151:15151 -v /var/snap/lxd/common/lxd/unix.socket:/var/snap/lxd/common/lxd/unix.socket Neomediatech/lxdui-alpine
+# docker run -it -p 15151:15151 -v /var/snap/lxd/common/lxd/unix.socket:/var/snap/lxd/common/lxd/unix.socket lxdui
 
-FROM python:3.7-alpine3.10 as BUILDER
+FROM ubuntu:18.04 as BUILDER
 
 RUN mkdir install
 WORKDIR /install
 
-RUN apk --update add git libffi-dev openssl-dev
-RUN git clone https://github.com/AdaptiveScale/lxdui.git /app
-RUN pip install --install-option="--prefix=/install" -r /app/requirements.txt
+RUN apt update && apt install -y python3 git
 
-FROM python:3.7-alpine3.10
-RUN /entrypoint.sh \
- -a openssl \
-&& echo
+RUN apt install -y python3-pip
+RUN pip3 install setuptools
+RUN git clone https://github.com/AdaptiveScale/lxdui.git /app
+RUN pip3 install --install-option="--prefix=/install" -r /app/requirements.txt
+#RUN python3 setup.py install
+
+FROM ubuntu:18.04
+RUN apt-get update \
+ && apt-get install -y lxd-client python3 python3-pkg-resources \
+ && apt-get clean -y \
+ && rm -rf /tmp/* /var/lib/apt/lists/*
 
 COPY --from=BUILDER /install /usr
 COPY --from=BUILDER /app/run.py /app/run.py
@@ -26,4 +31,4 @@ ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 EXPOSE 15151
 
-ENTRYPOINT ["python", "run.py", "start"]
+ENTRYPOINT ["python3", "run.py", "start"]
